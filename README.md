@@ -5,7 +5,7 @@
 With this project I wanted to see how much of opencv can be ported to work 
 on emscripten with .wasm.
 
-Live demo [here](https://serghov.github.io/OpencvFaceDetectWasm/cmake-build-debug/index.html)
+Live demo [here](https://serghov.github.io/OpencvFaceDetectWasm/cmake-build-debug)
 
 ## About
 

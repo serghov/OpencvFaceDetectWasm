@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Opencv facedection with emscripten</title>
+</head>
+<body>
+
+<div id="data"></div>
+<canvas id="canvas">
+
+</canvas>
+
+<canvas style="display: none;" width="640" height="360" id="videoCanvas">
+
+</canvas>
+
+<video width="400" id="video" controls muted>
+    <source src="test.mp4" type="video/mp4">
+    Your browser does not support HTML5 video.
+</video>
+
+<div id="output"
+     style="height: 300px; overflow-y: scroll; background-color: #000; color: #fff; font-family: 'Lucida Console', Monaco, monospace">
+
+</div>
+
+
+<script>
+    let isReady = false;
+    const consoleElement = document.getElementById('output');
+
+    Module = {
+        print: (function () {
+
+            return function (text) {
+                console.log(text);
+                try {
+                    consoleElement.innerHTML += text.replace('\n', '<br>', 'g') + '<br>';
+                    consoleElement.scrollTop += 100000;
+                } catch (e) {
+                }
+            };
+        })(),
+        canvas: document.getElementById('canvas')
+    };
+    //    main();
+
+    const video = document.getElementById('video');
+    const context = document.getElementById('videoCanvas').getContext('2d');
+
+    const update = function () {
+        /**
+         * To get video frames to native wasm code
+         * we draw each frame on canvas, then do a
+         * getImageData which returns us a native array
+         * with frame pixel data, which we copy to emscripten ram
+         * and call a wasm function with a pointer to that array
+         */
+        context.drawImage(video, 0, 0, video.videoWidth, video.videoHeight);
+        const data = context.getImageData(0, 0, video.videoWidth || 100, video.videoHeight || 100).data;
+
+        // check if c++ code has been loaded and so is the video
+        if (isReady && video.videoWidth) {
+            const buf = Module._malloc(data.length * data.BYTES_PER_ELEMENT);
+            Module.HEAPU8.set(data, buf);
+            Module.ccall('onNewImage', null, ['number', 'number', 'number'], [buf, video.videoWidth, video.videoHeight]);
+            // we clear the memory from c++ side, so no need here
+            // Module._free(buf);
+        }
+
+        requestAnimationFrame(update);
+    };
+
+    update();
+
+    /**
+     * We use this to display fps and other data on top
+     * of the webpage
+     * @param data {String}
+     */
+    const updateData = (data) => {
+        document.getElementById('data').innerText = data;
+    };
+</script>
+
+<script src="opencvWasmFaceDetect.js"></script>
+
+
+</body>
+</html>
